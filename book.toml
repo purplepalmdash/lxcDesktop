@@ -1,0 +1,6 @@
+[book]
+authors = ["Dash"]
+language = "en"
+multilingual = false
+src = "src"
+title = "lxc-desktop"
