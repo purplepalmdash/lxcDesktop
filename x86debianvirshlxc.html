@@ -3,8 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>lxc-desktop</title>
-        <meta name="robots" content="noindex">
+        <title>x86_debian_virsh_lxc - lxc-desktop</title>
 
 
         <!-- Custom HTML head -->
@@ -153,233 +152,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="x86_debian_host_setting"><a class="header" href="#x86_debian_host_setting">x86_debian_host_setting</a></h1>
-<p>Recording the tips for setting up the x86 based lxc desktop host on Debian.</p>
-<h3 id="system-installation"><a class="header" href="#system-installation">System Installation</a></h3>
-<p>The iso is <code>debian-12.9.0-amd64-DVD-1.iso</code>.</p>
-<p><img src="./images/20250205_095926_x.jpg" alt="./images/20250205_095926_x.jpg" /></p>
-<p><img src="./images/20250205_100027_x.jpg" alt="./images/20250205_100027_x.jpg" /></p>
-<p><img src="./images/20250205_100122_x.jpg" alt="./images/20250205_100122_x.jpg" /></p>
-<p><img src="./images/20250205_100143_x.jpg" alt="./images/20250205_100143_x.jpg" /></p>
-<p>Using mate desktop( you could also choose other desktop environments):</p>
-<p><img src="./images/20250205_100444_x.jpg" alt="./images/20250205_100444_x.jpg" /></p>
-<p><img src="./images/20250205_100911_x.jpg" alt="./images/20250205_100911_x.jpg" /></p>
-<h3 id="software-setting"><a class="header" href="#software-setting">Software Setting</a></h3>
-<p>Edit the apt's sources list:</p>
-<pre><code># cat /etc/apt/sources.list
-#deb cdrom:[Debian GNU/Linux 12.9.0 _Bookworm_ - Official amd64 DVD Binary-1 with firmware 20250111-10:55]/ bookworm contrib main non-free-firmware
-deb http://mirrors.ustc.edu.cn/debian bookworm main contrib non-free non-free-firmware
-# deb-src http://mirrors.ustc.edu.cn/debian bookworm main contrib non-free non-free-firmware
-deb http://mirrors.ustc.edu.cn/debian bookworm-updates main contrib non-free non-free-firmware
-# deb-src http://mirrors.ustc.edu.cn/debian bookworm-updates main contrib non-free non-free-firmware
-
-# backports 软件源，请按需启用
-# deb http://mirrors.ustc.edu.cn/debian bookworm-backports main contrib non-free non-free-firmware
-# deb-src http://mirrors.ustc.edu.cn/debian bookworm-backports main contrib non-free non-free-firmware
-# apt update -y &amp;&amp; apt upgrade -y
-</code></pre>
-<p>Install some necessary packages:</p>
-<pre><code>apt install -y iotop vim nethogs s-tui libvirt-daemon-driver-lxc virt-manager lxc lxc-templates lxcfs
-</code></pre>
-<p>Autologin configuration:</p>
-<pre><code># vim /etc/lightdm/lightdm.conf
-</code></pre>
-<p>subuid and subgid configuration:</p>
-<pre><code>root@lxcdesktop:~# cat /etc/subuid
-test:100000:65536
-root:100000:65536
-root@lxcdesktop:~# cat /etc/subgid
-test:100000:65536
-root:100000:65536
-</code></pre>
-<p><img src="./images/20250205_101953_x.jpg" alt="./images/20250205_101953_x.jpg" /></p>
-<p>Reboot the machine now.</p>
-<h3 id="lxc-configuration"><a class="header" href="#lxc-configuration">lxc configuration</a></h3>
-<p>Edit the common.conf:</p>
-<pre><code>diff /usr/share/lxc/config/common.conf /usr/share/lxc/config/common.conf.bak
-40,53d39
-&lt; ### tty0, tty1, tty7, tty8
-&lt; lxc.cgroup.devices.allow = c 4:0 rwm
-&lt; lxc.cgroup.devices.allow = c 4:1 rwm
-&lt; lxc.cgroup.devices.allow = c 4:7 rwm
-&lt; lxc.cgroup.devices.allow = c 4:8 rwm
-&lt; ## graphics. /dev/dri
-&lt; lxc.cgroup.devices.allow = c 226:0 rwm
-&lt; lxc.cgroup.devices.allow = c 226:128 rwm
-&lt; ## graphics. /dev/fb0
-&lt; lxc.cgroup.devices.allow = c 29:0 rwm
-&lt; ### sound
-&lt; lxc.cgroup.devices.allow = c 116:* rwm
-&lt; ### input
-&lt; lxc.cgroup.devices.allow = c 13:* rwm
-89,104d74
-&lt; ## graphics. /dev/dri
-&lt; lxc.cgroup2.devices.allow = c 226:0 rwm
-&lt; lxc.cgroup2.devices.allow = c 226:128 rwm
-&lt; ## graphics. /dev/fb0
-&lt; lxc.cgroup2.devices.allow = c 29:0 rwm
-&lt; ## graphics. /dev/fb1
-&lt; #lxc.cgroup2.devices.allow = c 29:1 rwm
-&lt; ## tty0, 1, 7, 8
-&lt; lxc.cgroup2.devices.allow = c 4:0 rwm
-&lt; lxc.cgroup2.devices.allow = c 4:1 rwm
-&lt; lxc.cgroup2.devices.allow = c 4:7 rwm
-&lt; lxc.cgroup2.devices.allow = c 4:8 rwm
-&lt; ### sound
-&lt; lxc.cgroup2.devices.allow = c 116:* rwm
-&lt; ### input
-&lt; lxc.cgroup2.devices.allow = c 13:* rwm
-107c77
-&lt; lxc.mount.auto = cgroup:mixed proc:rw sys:mixed
----
-&gt; lxc.mount.auto = cgroup:mixed proc:mixed sys:mixed
-109d78
-&lt; lxc.mount.entry = /dev/snd dev/snd none bind,optional,create=dir
-
-</code></pre>
-<p>Edit crontab for setting the privilege:</p>
-<pre><code># crontab -e
-@reboot chmod 777 /dev/tty* &amp;&amp; chmod 777 /dev/fb* &amp;&amp; chmod 777 -R /dev/dri/* &amp;&amp; chmod 777 -R /dev/snd/*
-</code></pre>
-<p>Create the lxc desktop instance:</p>
-<pre><code># ls
-kylinlxc.tar.xz  uoslxcdesktop.tar.xz  zkfdlxc.tar.xz
-meta.tar.xz	 uoslxc.tar.xz
-# root@lxcdesktop:~# lxc-create -t local -n kylinlxc -- -m /root/meta.tar.xz -f /root/kylinlxc.tar.xz
-Unpacking the rootfs
-
----
-You just created an Ubuntu jammy amd64 (20241021_07:42) container.
-
-To enable SSH, run: apt install openssh-server
-No default root or user password are set by LXC.
-</code></pre>
-<p>Edit the lxc instance's configuration file:</p>
-<pre><code>root@lxcdesktop:~# cat //var/lib/lxc/kylinlxc/config
-# Template used to create this container: /usr/share/lxc/templates/lxc-local
-# Parameters passed to the template: -m /root/meta.tar.xz -f /root/kylinlxc.tar.xz
-# For additional config options, please look at lxc.container.conf(5)
-
-# Uncomment the following line to support nesting containers:
-#lxc.include = /usr/share/lxc/config/nesting.conf
-# (Be aware this has security implications)
-
-
-# Distribution configuration
-lxc.include = /usr/share/lxc/config/common.conf
-lxc.arch = linux64
-
-# Container specific configuration
-lxc.apparmor.profile = generated
-lxc.apparmor.allow_nesting = 1
-lxc.rootfs.path = dir:/var/lib/lxc/kylinlxc/rootfs
-lxc.uts.name = kylinlxc
-
-# Network configuration
-lxc.net.0.type = veth
-lxc.net.0.link = lxcbr0
-lxc.net.0.flags = up
-
-lxc.mount.entry = /dev/fb0 dev/fb0 none bind,optional,create=file
-lxc.mount.entry = /dev/dri dev/dri none bind,optional,create=dir
-lxc.mount.entry = /dev/dri/renderD128 dev/dri/renderD128 none bind,optional,create=file
-### allow tty8
-lxc.mount.entry = /dev/tty7 dev/tty7 none bind,optional,create=file
-lxc.mount.entry = /dev/tty8 dev/tty8 none bind,optional,create=file
-lxc.mount.entry = /dev/tty0 dev/tty0 none bind,optional,create=file
-### allow all of the input
-lxc.mount.entry = /dev/input dev/input none bind,optional,create=dir
-### allow all of the snd
-lxc.mount.entry = /dev/snd dev/snd none bind,optional,create=d
-</code></pre>
-<p>Create the <code>preX-populate-input.sh</code> for this instance:</p>
-<pre><code>root@lxcdesktop:~# cat preX-populate-input.sh
-#!/usr/bin/env bash
-
-### Creates config file for X with all currently present input devices
-#   after connecting new device restart X (systemctl restart lightdm)
-######################################################################
-
-cat &gt;/etc/X11/xorg.conf.d/10-lxc-input.conf &lt;&lt; _EOF_
-Section "ServerFlags"
-     Option "AutoAddDevices" "False"
-EndSection
-_EOF_
-
-cd /dev/input
-for input in event*
-do
-cat &gt;&gt; /etc/X11/xorg.conf.d/10-lxc-input.conf &lt;&lt;_EOF_
-Section "InputDevice"
-    Identifier "$input"
-    Option "Device" "/dev/input/$input"
-    Option "AutoServerLayout" "true"
-    Driver "evdev"
-EndSection
-_EOF_
-done
-# cp preX-populate-input.sh /var/lib/lxc/kylinlxc/rootfs/usr/local/bin/
-# mkdir -p /var/lib/lxc/kylinlxc/rootfs/etc/X11/xorg.conf.d/
-# chmod 777 /var/lib/lxc/kylinlxc/rootfs/usr/local/bin/preX-populate-input.sh
-</code></pre>
-<p>Edit the lightdm's configuration file:</p>
-<pre><code># cat override.conf
-[Service]
-ExecStartPre=/bin/sh -c '/usr/local/bin/preX-populate-input.sh'
-SupplementaryGroups=video render input audio tty
-# mkdir -p /var/lib/lxc/kylinlxc/rootfs/etc/systemd/system/lightdm.service.d
-# cp override.conf /var/lib/lxc/kylinlxc/rootfs/etc/systemd/system/lightdm.service.d/
-root@lxcdesktop:~# vim /var/lib/lxc/kylinlxc/rootfs/etc/lightdm/lightdm.conf
-root@lxcdesktop:~# cat /var/lib/lxc/kylinlxc/rootfs/etc/lightdm/lightdm.conf
-[LightDM]
-minimum-vt=8
-[SeatDefaults]
-autologin-guest=false
-autologin-user=test
-autologin-user-timeout=0
-</code></pre>
-<p>Now start the machine via:</p>
-<pre><code>lxc-start -n kylinlxc
-</code></pre>
-<p>The result shows:</p>
-<p><img src="./images/20250205_110458_x.jpg" alt="./images/20250205_110458_x.jpg" /></p>
-<h4 id="evdev-package-issue"><a class="header" href="#evdev-package-issue">evdev package issue</a></h4>
-<p>since <code>xserver-xorg-input-evdev</code> is not installed via default, install it via:</p>
-<pre><code>root@kylinlxc:~# dhclient eth0
-root@kylinlxc:~# apt install -y xserver-xorg-input-evdev
-</code></pre>
-<h3 id="sound"><a class="header" href="#sound">sound</a></h3>
-<p>Testing the host's sound and video:</p>
-<pre><code># apt install -y smplayer
-# smplayer wind.mp4
-</code></pre>
-<p><img src="./images/20250205_111037_x.jpg" alt="./images/20250205_111037_x.jpg" /></p>
-<p>Get the sound related info:</p>
-<pre><code>test@lxcdesktop:~$ export DISPLAY=:0
-test@lxcdesktop:~$ pactl list sinks short
-0	alsa_output.pci-0000_00_1f.3.analog-stereo	module-alsa-card.c	s16le 2ch 44100Hz	SUSPENDED
-</code></pre>
-<p>Copy the media file to lxc guest:</p>
-<pre><code># cp /home/test/Desktop/wind.mp4 /var/lib/lxc/kylinlxc/rootfs/home/test/桌面/
-</code></pre>
-<p>Install smplayer in lxc guest:</p>
-<pre><code># lxc-attach -n kylinlxc
-root@kylinlxc:~# apt install -y smplayer
-</code></pre>
-<p>in Default configuration, no sound device have been added:</p>
-<p><img src="./images/20250205_140635_x.jpg" alt="./images/20250205_140635_x.jpg" /></p>
-<p>Add crontab task:</p>
-<pre><code>root@lxcdesktop:~# lxc-attach -n kylinlxc
-root@kylinlxc:~# su test
-To run a command as administrator (user "root"), use "sudo &lt;command&gt;".
-See "man sudo_root" for details.
-
-test@kylinlxc:/root$ crontab -e
-@reboot sleep 10; export DISPLAY=:0; /usr/bin/pactl load-module module-alsa-card device_id=1 ; /usr/bin/pactl load-module module-alsa-card device_id=0
-</code></pre>
-<p>Then you could have video playbook normally.</p>
-<p><img src="./images/20250205_145227_x.jpg" alt="./images/20250205_145227_x.jpg" /></p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="x86_debian_virsh_lxc"><a class="header" href="#x86_debian_virsh_lxc">x86_debian_virsh_lxc</a></h1>
+                        <h1 id="x86_debian_virsh_lxc"><a class="header" href="#x86_debian_virsh_lxc">x86_debian_virsh_lxc</a></h1>
 <p>Using virsh for managing lxc instances.</p>
 <p>Make sure the default network autostart at boot:</p>
 <p><img src="./images/20250205_151229_x.jpg" alt="./images/20250205_151229_x.jpg" /></p>
@@ -583,87 +356,18 @@ test@kylinlxc:/root$ crontab -e
 # virsh -c lxc:/// start firstlxc
 </code></pre>
 <p>The running result is the same as the manually created lxc instance.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="loongson-3a6000"><a class="header" href="#loongson-3a6000">Loongson 3A6000</a></h1>
-<h3 id="hardware"><a class="header" href="#hardware">Hardware</a></h3>
-<p>Following are some screenshots for Loongson 3A6000.</p>
-<p>Startup Logo:</p>
-<p><img src="./images/2025_01_20_23_58_44_1327x844.jpg" alt="./images/2025_01_20_23_58_44_1327x844.jpg" /></p>
-<p>System Summary:</p>
-<p><img src="./images/2025_01_20_23_55_12_945x667.jpg" alt="./images/2025_01_20_23_55_12_945x667.jpg" /></p>
-<p>Primary Display:</p>
-<p><img src="./images/2025_01_20_23_56_26_902x463.jpg" alt="./images/2025_01_20_23_56_26_902x463.jpg" /></p>
-<p>PCIe Device Information:</p>
-<p><img src="./images/2025_01_20_23_57_56_1027x678.jpg" alt="./images/2025_01_20_23_57_56_1027x678.jpg" /></p>
-<p><img src="./images/2025_01_20_23_57_29_1023x645.jpg" alt="./images/2025_01_20_23_57_29_1023x645.jpg" /></p>
-<h3 id="systemos"><a class="header" href="#systemos">System/OS</a></h3>
-<p>Login window(Running KDE,sddm):</p>
-<p><img src="./images/2025_01_20_23_59_33_774x632.jpg" alt="./images/2025_01_20_23_59_33_774x632.jpg" /></p>
-<p>System information:</p>
-<pre><code>(ssh)test@aosc-9588454d [ ~ ] $ cat /etc/issue
-\n - AOSC OS 11.5.2 / Kernel \r (\l)
-(ssh)test@aosc-9588454d [ ~ ] $ uname -a
-Linux aosc-9588454d 6.10.10-aosc-main #1 SMP PREEMPT_DYNAMIC Fri Sep 13 17:31:45 UTC 2024 loongarch64 GNU/Linux
-(ssh)test@aosc-9588454d [ ~ ] $ free -m
-               total        used        free      shared  buff/cache   available
-内存：         16096        3105       13688          25         852       12991
-交换：         15359           0       15359
-(ssh)test@aosc-9588454d [ ~ ] $ cat /proc/cpuinfo
-system type		: generic-loongson-machine
-
-processor		: 0
-package			: 0
-core			: 0
-global_id		: 0
-CPU Family		: Loongson-64bit
-Model Name		: Loongson-3A6000-HV
-CPU Revision		: 0x00
-FPU Revision		: 0x00
-CPU MHz			: 2500.00
-BogoMIPS		: 5000.00
-TLB Entries		: 2112
-Address Sizes		: 48 bits physical, 48 bits virtual
-ISA			: loongarch32 loongarch64
-Features		: cpucfg lam ual fpu lsx lasx crc32 lvz lbt_x86 lbt_arm lbt_mips
-Hardware Watchpoint	: yes, iwatch count: 8, dwatch count: 4
-</code></pre>
-<p>Driver info:</p>
-<pre><code>(ssh)test@aosc-9588454d [ ~ ] $ sudo lspci -vvnn -s 00:07.0  | grep 'in use'
-	Kernel driver in use: snd_hda_intel
-(ssh)test@aosc-9588454d [ ~ ] $ sudo lspci -vvnn -s 07:00.1 | grep 'in use'
-	Kernel driver in use: snd_hda_intel
-(ssh)test@aosc-9588454d [ ~ ] $ sudo lspci -vvnn -s 07:00.0 | grep 'in use'
-	Kernel driver in use: amdgpu
-(ssh)test@aosc-9588454d [ ~ ] $ sudo lspci | grep '07.0'
-00:07.0 Audio device: Loongson Technology LLC HDA (High Definition Audio) Controller
-07:00.0 VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Oland PRO [Radeon R7 240/340 / Radeon 520] (rev 83)
-07:00.1 Audio device: Advanced Micro Devices, Inc. [AMD/ATI] Oland/Hainan/Cape Verde/Pitcairn HDMI Audio [Radeon HD 7000 Series]
-</code></pre>
-<h3 id="virtualization"><a class="header" href="#virtualization">Virtualization</a></h3>
-<p>Installed packages:</p>
-<pre><code>(ssh)test@aosc-9588454d [ ~ ] $ sudo dpkg -l | grep qemu
-ii  canokey-qemu                   0+git20230605                                          loongarch64  Library for Qemu to provide a virtual canokey to the guest OS
-ii  qemu                           9.0.1-3                                                loongarch64  A KVM based virtualization client
-(ssh)test@aosc-9588454d [ ~ ] $ dpkg -l | grep libvirt
-ii  libvirt                        10.5.0                                                 loongarch64  API for controlling virtualization engines
-ii  libvirt-glib                   5.0.0                                                  loongarch64  GLib bindings for LibVirt
-ii  libvirt-python                 10.5.0                                                 loongarch64  Python bindings for libvirt
-(ssh)test@aosc-9588454d [ ~ ] $ dpkg -l | grep virt-manager
-ii  virt-manager                   4.1.0-3                                                all          Desktop user interface for managing virtual machines
-(ssh)test@aosc-9588454d [ ~ ] $ qemu-system-loongarch64 --version
-QEMU emulator version 9.0.1
-Copyright (c) 2003-2024 Fabrice Bellard and the QEMU Project developers
-</code></pre>
-<p>The virtualization suites are installed via:</p>
-<pre><code>$ sudo apt update -y
-$ sudo apt install -y virt-manager
-$ sudo systemctl enable libvirtd
-</code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="x86debianhost.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
+                            <a rel="next prefetch" href="3a6000.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -671,7 +375,13 @@ $ sudo systemctl enable libvirtd
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="x86debianhost.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
 
+                    <a rel="next prefetch" href="3a6000.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>
@@ -694,11 +404,6 @@ $ sudo systemctl enable libvirtd
 
         <!-- Custom JS scripts -->
 
-        <script>
-        window.addEventListener('load', function() {
-            window.setTimeout(window.print, 100);
-        });
-        </script>
 
     </div>
     </body>
